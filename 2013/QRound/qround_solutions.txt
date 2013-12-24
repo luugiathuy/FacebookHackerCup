@@ -1,0 +1,115 @@
+Qualifying Round Solutions
+
+1. Square Detector (20 Points)
+
+When facing a problem in a programming contest there are three main things to consider when planning your solution. In order of importance:
+Is the algorithm correct.
+Is the algorithm fast enough.
+Is the algorithm easy to implement.
+
+In this particular problem the first two points are rather straightforward, the task is conceptually simple and with the small input size efficiency is not a big concern.
+
+The third point however deserves some consideration, I'm sure you are well aware that it's easy to make bugs in any piece of code you write, and chances for having bugs increase sharply with the code lengths and complexity. That's why it's worth to spend couple extra minutes to think about an approach that yields the least complicated code.
+
+One clever way of solving this is to realize that if you take the bounding box of all the black cells all you need to check is that it's a square and that all the cells inside it are black. Since we are talking about the bounding box another way of stating the second condition is that: total number of black cells is equal to the area of our box.
+
+With that observation the whole algorithm can be expressed with just these simple steps:
+Find the minimum and maximum X coordinate of all the black cells. The same for Y values
+Count all the black cells
+Check if maxX - minX == maxY - minY
+Check if the area: (maxX - mniX +1)^2 is equal to the count from step 2
+Profit!
+
+A solution like that leaves much less room for an error than solutions with higher number of conditions to check, like for example finding segments in each row and then figuring out if they add up to a square. Here is an example python implementation:
+
+def solve():
+    n = int(raw_input().strip())
+    b = [raw_input().strip() for i in range(n)]
+    black = 0
+    minX, maxX, minY, maxY = n, 0, n, 0
+    for x in range(0, n) :
+        for y in range(0, n) :
+            if b[x][y] == '#':
+                minX, minY  = min(minX, x), min(minY, y)
+                maxX, maxY = max(maxX, x), max(maxY, y)
+                black += 1
+    dx = maxX - minX + 1
+    dy = maxY - minY + 1
+    return dx == dy and dx * dy == black
+
+if __name__ == '__main__':
+    t = int(raw_input().strip())
+    for i in range(1, t+1):
+        res = solve()
+        print 'Case #%d: %s' % (i, 'YES' if res else 'NO')
+
+Another idea of a very inefficient, but easy to implement algorithm is that you can iterate over all the possible grid formations that form a square, there is an order of N^3 of them. Now all you need to check is whether one of the grids matches your input exactly!
+
+Finally with 20 cases and 5 minutes to upload the output, you can actually detect the squares by reading the input file with your own pair eyes :)
+
+2. Basketball Game (35 Points)
+
+Similarly to the previous problem the solution doesn't require fancy algorithm, and the execution speed is not a problem. You can basically solve it by translating the statement step by step into code to simulate what happens during the game.
+
+The main difficulty in doing that is figuring out how to store and manipulate the state for each of the players. There are multiple pieces of information associated with a player: her name, height, shot accuracy, draft number, minutes played, and whether she's currently on the bench. With all that it might be useful to encapsulate it in a structure. I chose to have a Player class that stores all the aforementioned data. With that out of the way the solution can be done in three steps:
+
+Step 1: Calculate draft numbers and split into teams
+The easiest way to achieve this is to sort all the players by the defined criteria and then the 1-base index of a player in the sorted array is equal to the draft number of that player. Sorting things by various criteria is an often encountered operation in programming competitions so it's worth knowing how to do it in your language of choice. For example in python you can do it by passing a lambda function for key calculation, like this:
+
+    players.sort(key = lambda p: (p.perc, p.height), reverse=True)
+    for idx, player in enumerate(players):
+        player.draft = idx + 1
+        player.onField = idx < 2 * P
+    teamA = filter(lambda t: t.draft % 2 == 1, players)
+    teamB = filter(lambda t: t.draft % 2 == 0, players)
+
+Step 2: Simulate a minute of the game and the rotation
+Again we want to perform exactly what the problem statement asks us to. That is find the player with the most play time currently on the field and the player with the least play time from the bench. We can again use a lambda function together with min/max functions to achieve that.
+
+def field(team): return filter(lambda p: p.onField, team)
+
+def bench(team): return filter(lambda p: not p.onField, team)
+
+def play(team):
+    for player in field(team): player.timePlayed += 1
+
+def rotate(team):
+    max(field(team), key = lambda p: (p.timePlayed, p.draft)).onField = False
+    min(bench(team), key = lambda p: (p.timePlayed, p.draft)).onField = True
+
+There is one subtlety in the rotate function above. It adds the player to the bench before selecting the player to join the field so it looks like it could allow for a player to leave and immediately come back. In practice this can never happen (for teams with more than P players) but if you are not convinced and don't feel like proving it just use a temporary variable rather than changing the state right away.
+
+Step 3: Get the state after M minutes and print the result
+After repeating the previous step M times there is one final thing to do. Find the players on the field and print out sorted list of names:
+
+    res = map(lambda p: p.name, field(teamA) + field(teamB))
+    print(" ".join(sorted(res)))
+
+A final Note on the language selection, I've chosen Python for the examples because I enjoy the brevity and clarity it can offer. The problem can of course be solved in a more imperative way just fine. In the future rounds we might face more computationally heavy problems where benefits of a faster language like C++ can outweigh the elegance of Python.
+
+3. Tennison (45 Points)
+
+Let F(w, l, p) be the probability that Tennison wins the match given that he has already won w games, lost l games, and the probability of sun is currently p. Our answer will then be F(0, 0, pi).
+
+First, the base cases. If you've already won K or lost K games, the match is over:
+
+F(K, l, p) = 1.0
+F(w, K, p) = 0.0
+
+For each match, it can be sunny or rainy, Tennison can win or lose, and the weather can change or stay the same. That gives us 23 = 8 possible outcomes. Our answer will be the sum across all of these outcomes. The probability of each outcome is just the product of the probability of the 3 individual events.
+
+F(w, l, p) =
+  p       * ps       * pw       * F(w + 1, l,     p + pu) +
+  p       * ps       * (1 - pw) * F(w + 1, l,     p     ) +
+  p       * (1 - ps) * pl       * F(w,     l + 1, p - pd) +
+  p       * (1 - ps) * (1 - pl) * F(w,     l + 1, p     ) +
+  (1 - p) * pr       * pw       * F(w + 1, l,     p + pu) +
+  (1 - p) * pr       * (1 - pw) * F(w + 1, l,     p     ) +
+  (1 - p) * (1 - pr) * pl       * F(w,     l + 1, p - pd) +
+  (1 - p) * (1 - pr) * (1 - pl) * F(w,     l + 1, p     )
+
+If p is ever greater than 1, or less than 0, it's important to remember to cap it to the range [0, 1].
+
+We need to memoize our results to have this solution run in time, but that might appear awkward since one of the inputs to F, p is a fraction. However, the probabilities are only given to 3 decimal places so it suffices to represent p as an integer in the range [0, 1000].
+
+w and l can each be as large as K, and p can be as large as 1000, so the worst-case running time is proportional to 1000 * K2, which is 107.

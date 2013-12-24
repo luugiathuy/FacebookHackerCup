@@ -1,0 +1,179 @@
+Round 1 Solutions
+
+Labelmaker
+
+To solve this problem, let's first consider the simple case where the only two letters are 'A' and 'B'. Here are the labels for the first few boxes using 'A' and 'B':
+
+A, B, AA, AB, BA, BB, AAA, AAB, ABA, ABB, BAA, ...
+
+That looks pretty similar to counting in binary. So first let's write some code to make normal binary labels using 'A' instead of '0' and 'B' instead of '1':
+
+def binary_using_ab(n):
+    letters = 'AB'
+    result = ''
+    while n > 0:
+        char = letters[n % 2]
+        n = n / 2
+        result = char + result
+    return result
+
+This is just binary, but replacing all the '0's with 'A's, and all the '1's with 'B's. Here's the output of this function compared to the labels:
+
+Binary: B, BA, BB, BAA, BAB, BBA, BBB, BAAA, BAAB, BABA, ...
+Labels: A, B, AA, AB, BA, BB, AAA, AAB, ABA, ABB, BAA, ...
+
+The key difference between the labels and normal binary is that instead of A and B equalling 0 and 1 (like they do in the function we just wrote), in our labelling scheme A is 1 and B is 2. That means that each digit in a string is worth 1 more in our labelling scheme than it would be if we interpretted the string as normal binary. So let's modify our function to subtract one from the number before we handle each digit:
+
+def AB_label(n):
+    letters = 'AB'
+    result = ''
+    while n > 0:
+        n -= 1  # This line is the only difference!
+        char = letters[n % 2]
+        n = n / 2
+        result = char + result
+    return result
+
+This works for labels that just use A and B, but what about labels that use more than two letters? It turns out our solution is very easy to generalize:
+
+def label(letters, n):
+    result = ''
+    while n > 0:
+        n -= 1
+        char = letters[n % len(letters)]
+        result = char + result
+        n = n / len(letters)
+    return result
+
+Also note that because this solution only uses subtraction and division, we don't need to worry about overflow from very large numbers.
+
+
+Coins Game
+
+This was a tricky problem where one had to be careful about considering the possible cases and in the end only roughly 25% of the submissions passed the tests.
+
+The first thing you can notice is that the number of moves Bob needs to do, really only depends on how many times he points at an empty jar,
+lets call it a miss. If Bob has M misses the total number of moves is M + C so the problem boils down to how to minimize M.
+Of course in the optimal strategy he will never point at the same jar again once he know it's empty so we only need to figure out how many different empty jars make him miss.
+
+Now imagine that Bob needs to get X coins from one of the jars, in the worst case he will have a miss for each jar that had fewer than X coins. Consider an example:
+N=5 K=16 C=16
+We need to get 16 coins so we have to take at least 4 coins from one of the jars (because 5x3 is not enough).
+If you distrubute the coins like [4, 3, 3, 3, 3] you will potentially make 4 misses by trying each of the 3 coins jar before finding the jar which had 4.
+You can however use the distribution [4, 4, 4, 4, 0] which won't have more than 1 miss, since you know you can safely draw exactly 4 times from every nonempty jar.
+
+In general if you know that the maximum number of coins you want to get from a single jar is X the optimal distribution will have as many jars as possible with X coins.
+If that leaves you with leftover coins you should put them in one of the jars that remained empty and you will pick them up without changing the number of misses.
+(If you are able to fill all the jars up to X it doesn't matter where you put the remaining coins). This was the part many contestants got wrong. Consider a case
+N=3 K=7 C=7
+You should equally distribute six coins between two jars and now you have a single coin left. The correct decision is to put it in the jar that is empty. We already assumed that the last jar will be a miss, but at least we can get a coin out of it before the miss. If instead you add the seventh coin into one of the other jars it will cost you an extra move.
+
+So how do we find what the value of X should be? One way is to simple iterate over all the possible values and selecting the one that both gives you enough coins and the fewest misses.
+However you can be more clever about it and notice that it can be computed directly. First of all we need to be sure that we get enough coins that is X * N >= C.
+Remember we want minimize the number of jars with fewer than X coins, that means we want to make X as small as possible.
+The smallest integer that satisfies the inequality above is ceil(C/N), so that's the best value for our X.
+
+What's remaining is to calculate the number of misses we get. We can fully fill floor(K / X) jars (and obviously not more than N of them).
+That means our number of misses can be calculated as M = N - min(floor(K / X), N).
+And that gives us a short closed formula solution:
+
+def solve(N, K, C):
+    X = ceil(C / N) # Python 3 float division
+    M = N - min(int(K / X), N)
+    return M + C
+
+AAAAAA
+
+If the queue is only allowed to extend down and to the right, then there is a
+simple recursive formulation. Let F(x, y) be the size of the maximum queue
+that could fit in the lot starting at (x, y), where (0, 0) is the upper-left
+corner of the lot. Then:
+
+F(x, y) = 1 + max(F(x + 1, y), F(x, y + 1))
+
+When we can go neither right nor down, then that's a base case with an
+answer of 1. Obviously we don't extend the queue into cells that contain walls.
+
+We can update this solution to account for a single backwards section.
+First, note that it is impossible to ever cross your path, even with the
+backwards section. Therefore, it isn't necessary to remember which cells have
+already been used. We do however need to keep track of which direction we last
+extended the queue, and we need to keep track of whether we've used up the
+backwards section already.
+
+So we need a function G(x, y, D, U). D is a value from the set {UP, DOWN,
+LEFT, RIGHT} indicating which direction we last extended the queue. U is a
+value from the set {USED, UNUSED} indicating whether or not we have used a
+backwards section so far. In particular, USED means that we have finished
+making backwards moves.
+
+Let's break this down into some cases.
+
+
+Case 1 -- We've already used the backwards section
+We can only go right or down from here:
+
+G(x, y, D, USED) = 1 + max(
+  G(x + 1, y, RIGHT, USED),
+  G(x, y + 1, DOWN, USED)
+)
+
+Case 2 -- We haven't started using the backwards section yet
+We can move right or down as usual, or we can start moving backwards:
+
+G(x, y, RIGHT, UNUSED) = 1 + max(
+  G(x + 1, y, RIGHT, UNUSED),
+  G(x, y + 1, DOWN, UNUSED),
+  G(x, y - 1, UP, UNUSED)
+)
+
+G(x, y, DOWN, UNUSED) = 1 + max(
+  G(x + 1, y, RIGHT, UNUSED),
+  G(x, y + 1, DOWN, UNUSED),
+  G(x - 1, y, LEFT, UNUSED)
+)
+
+Remember that U remains set to UNUSED until we *finish* moving backwards.
+Also, note that we use D to stop ourselves from going back to the previous
+cell.
+
+
+Case 3 -- We are currently moving backwards
+We can continue to move backwards, or we can start moving forwards again:
+
+G(x, y, LEFT, UNUSED) = 1 + max(
+  G(x - 1, y, LEFT, UNUSED),
+  G(x, y + 1, DOWN, USED)
+)
+
+G(x, y, UP, UNUSED) = 1 + max(
+  G(x, y - 1, UP, UNUSED),
+  G(x + 1, y, RIGHT, USED)
+)
+
+We can memoize the results to make sure that this runs sufficiently quickly.
+We visit at most N * N * 4 * 2 states, and transitions are constant time, so
+this will run in O(N^2) time and memory.
+
+
+Preventing Alzheimers
+
+Let's start by solving the problem for K=1. We can start by noticing that a valid solution has the following property: Every prime factor of a number in the solution is a factor in exactly one number in the solution. If a prime factor p appears in two numbers A = p * c1 and B = p * c2, we would break the constraint that each pair of numbers should not be divisible by any number greater than K. Both A and B are divisible by p.
+
+Now that we have established that each prime factor can be used at most once, we can start thinking about a dynamic programming approach, where we use a bitmask to represent which primes we've used. Let's start by finding out how many primes we would have to represent in the bitmask.
+
+It's easier to start with an overestimate than to get the exact number. Let's start with all 50s and pick the 20 next primes. It should be clear that we never need a bigger number than this. It turns out that this number is 149, and it's the 35th prime. We can't do a DP over a 35 bit bitmask, so we need to improve this somehow.
+
+The next thing we need to notice is that at some point X, if a prime p is part of the solution, and p > X, we will never use a bigger multiple of the prime than the prime itself. This means that beyond this limit, we can just pick the prime number without caring if anyone else will use it. Let's call these primes large primes. We have already established that 149 is an upper bound for an element in the solution, so X should be at most 149/2 = 74. This means that 73 is the largest prime p that can possibly be used on the form k*p, where k > 1. 73 happens to be the 20th prime.
+
+DP on a bitmask of size 20 is in the realm of what is feasible, but it's still going to be pretty slow. Imagine again that we have all 50s. The solution will most certainly not only contain prime numbers. There are 15 primes before 50, which can be combined to create lots of different numbers. It's easy to construct enough numbers greater than 50 to reduce the number of bits in the bitmask by at least 2. We'll leave it as an exercise for the reader to prove the correctness of this and to find a tight upper bound. If you manage to reduce it to 18, it should be more than enough to have a fairly fast solution.
+
+Now that we've figured out what the bitmask represents, we need to figure out the complete DP state. Let's assume that the list of numbers is sorted. The state DP(mask, i) should represent the minimum cost to have used the primes represented by the active bits in mask after processing the i first elements. You also need to store what the largest large prime you have used is, so that you don't use the same one over and over.
+
+Two states DP(mask1, i) and DP(mask2, i+1) are neighbours if there exists a number A >= B, where B is the i+1th number, where the primes in A are not represented in mask1 and mask2 = mask1 | (mask_of_primes_from_A). The cost of the transition is A - B.
+
+You will get the solution by finding min(DP(mask, N-1)) for each possible mask, and subtracting the sum of the original array.
+
+Note that you can keep all 1s from the original array, since they are only divisible by 1 anyway. The solution can have exactly one 0 if all other elements are 1. This caused some confusion with one of the examples. A lot of people thought 0 0 2 2 was a valid solution, but the two 0s can both be divisible by any number, so K is not the largest number they are divisible by.
+
+Now that we have solved it for K=1, let's move on to solving it for the general case. Let's start by noting that all numbers in the solution will be divisible by K. We can start by rounding up all number to the closest multiple of K. The only observation we need to do at this point is that if we divide all numbers by K, we get the same problem as for K=1. Solve for K=1 with your new numbers and multiply by K before subtracting the original array.

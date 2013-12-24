@@ -1,0 +1,84 @@
+Round 2 Solutions
+
+Magic Pairs
+https://www.facebook.com/hackercup/problems.php?pid=620734011349888&round=544142832342014
+
+The problem is basically ask to optimize this function:
+for i in xrange(n):
+  for j in xrange(m):
+    if set(Board1[0:i]) == set(Board2[0:j]):
+      ret += 1
+One optimization is, if an element (say, x) is exists in Board1 but not Board2, there is no way a magic pair can comes out until the first x comes out in Board2.
+
+So, we could maintain 2 sets, s1 and s2. When a new element x add into s1, but not exists in s2, loop all elements in Board2 until x is reached. Keep iterate the elements in Board1 and Board2, until all elements in s1 are same as s2.
+
+For comparing s1 and s2, if we use brute force to iterate all elements in these 2 sets, it will costs too much time, so we still need to optimize this process. Instead of maintaining the exact elements of Board1 and Board2, we could maintain the difference between s1 and s2 (i.e. the elements exist in s1 but not s2, and the elements exist in s2 but not in s1). When the sets are empty, we find a magic pair.
+
+A further optimization is, for each element in the boards, we only need to maintain the first time it comes out. When an element comes out in its 2nd time, we don’t really need to care about that since it must have been included previously.
+
+Hold'em Numbers
+https://www.facebook.com/hackercup/problems.php?pid=527868440642335&round=544142832342014
+
+This problem was interesting since it had a plethora of possible solutions with almost every contestant taking a different approach. Ranging from DP through precomputations, binary search to various manifestations of the inclusion–exclusion principle.
+I'll present one possible solution here and encourage you to explore contestants code to find other creative ways.
+
+First thing that you should notice is that you need to count the possible configurations of your opponents cards in a way that doesn't try to use the same card twice. That was a mistake multiple contestants made by trying to  calculate the total as X*(X-1)*(X-2) where X is the number of individual hands losing the the current one.
+This doesn't work because many of these configurations are impossible, for example one player holding (2, 3) and another (2, 4) at the same time.
+
+Another difficulty was making sure that the solution is fast enough to run in time. A straightforward brute force solution won't work since we have O(N^6) ways to distribute 6 cards between opponents and that's just for a single hand. One observation that can significantly speed up a solution is that you only need to find the weakest hand that is worth betting and all the stronger hands will be worth betting as well. This makes sense intuitionally and I'm guessing many contestants just trusted their gut feeling that it works, but for the curious I'll post a proof in the comments of this note.
+This means that even if you need N^4 operations to solve a single hand you can use binary search to find the breaking point and still comfortably fit in time.
+
+A sample algorithm for solving a single hand is to iterate over all possible hands of two of the opponents and then calculating the number of possible hands for the third one. For example if our hand is (a,b) the opponent one hand is (c, d) and the opponent two hand is (e, f) we want to calculate the number of hands that are losing to (a,b) and have none of the {c,d,e,f} cards in them. We can do that by taking the total number of hands that are losing to (a,b) and subtracting the ones that contain each of the {c, d, e, f} separately.
+The only thing one needs to be careful about is not to subtract the same thing twice and that's where the inclusion-exclusion principle comes handy. A sample implementations of that idea follows.
+
+// helper function comparing two hands
+int comp(int a1, int b1, int a2, int b2);
+// helper function checking if two hands don't conflict
+boolean conflict(int a1, int b1, int a2, int b2);
+
+long countWorse(int n, int a, int b) {
+  int[]hands = new int[n+1]; //hands losing to (a, b) and containing a given number
+  long res = 0;
+  long totalHands = 0; // all hands losing to (a,b);
+  for(int i=1;i
+    if(conflict(a,b,i,j)) continue;
+    if(cmp(a,b,i,j)
+    hands[i]++;hands[j]++;
+    totalHands++;
+  }
+  for(int c=1;c
+    for(int d=c+1;d
+      if(conflict(a,b,c,d))continue;
+      if(cmp(a,b,c,d)
+      for(int e = 1;e
+        for(int f=e+1;f
+          if(conflict(a,b,e,f))continue;
+          if(conflict(c,d,e,f))continue;
+          if(cmp(a,b,e,f)
+          long cnt = totalHands - (hands[c]+hands[d]+hands[e]+hands[f]);
+          cnt +=2; // don't subtract (c, d) and (e, f) twice
+          if(cmp(a,b,c,e)>0)cnt++; // Same for (c,e),
+          if(cmp(a,b,c,f)>0)cnt++; // (c,f),
+          if(cmp(a,b,d,e)>0)cnt++; // (d, e),
+          if(cmp(a,b,d,f)>0)cnt++; // and (d,f)
+          res+=cnt;
+        }
+      }
+    }
+  }
+  return res;
+}
+
+A similar idea to the one above that yields a faster solution is to rather than set two out of the three hands set one card in each of the hands.
+
+Ski Resort Planning
+https://www.facebook.com/hackercup/problems.php?pid=264320743716595&round=544142832342014
+
+The input is a tree rooted at 0. Let size[u,v] denote the number of vertices in the subtree rooted at u, whose numbers are less than v.
+Let's say we are processing vertex v, we want to count the number of ways this vertex v can be added, i.e. how many ways we can add edges to v such that its parent in the tree is the node with the largest number that all paths to v go through. We only consider adding edges from x if x < v.
+
+Let's say parent[v] have other children u1, u2, ... uk, whose numbers are less than v. The total number of ways of adding at least one edge to v = (2 ^ ( 1 + size[u1,v] + size[u2,v] + ... + size[uk,v])) - 1. The number of invalid ways among them are cases in which all incoming edges to v came from only one of the subtrees rooted at ui. So subtract from the above number (2^size[u1,v] - 1) + (2^size[u2,v] - 1) + ... + (2^size[uk,v] - 1).
+
+If you do this for all vertices and multiply the results, you will have the answer.
+
+Quite a few people didn't consider the fact that edges could go up the tree, as long as it was from a vertex with a lower number. Note that going up the tree is not necessarily the same as going up the mountain.
