@@ -1,0 +1,24 @@
+Cooking the Books
+
+With only 9 digits, it's easy to just try swapping all possible pairs of digits to see what makes the smallest and largest numbers. You must take care not to swap zeroes to the front of the number, of course. This solution has a time complexity of O(N^2) where N is the number of digits, or potentially O(N^3) if you use strings to represent the numbers.An O(N) solution is also available, though it isn't necessary for such small numbers. First observe that you always want to modify the most significant digit that you can. If we want to make a number as large as possible, we need to find the most significant digit D such that there is some less significant digit D' that satisfies D' > D. We want to select the largest possible D', but if this isn't unique, then we want to select the least significant one.For example, if the number is 997818, D is 7, as we can't replace 9 with anything larger. D' will be 8, and in particular we select the 8 from the end of the number, to give us the result 998817. We can select both D and D' in O(N) time, leading to an overall time complexity of O(N). The process to find the smallest number is parallel.
+Input: http://pastebin.com/UEW60MbW
+Output: http://pastebin.com/Xqm6PThN
+
+
+New Year's Resolution
+
+This is a variant of the NP-complete subset sum problem (http://en.wikipedia.org/wiki/Subset_sum_problem). Being NP-complete, it makes sense to expect exponential time complexity. Luckily, the upper bound on N is only 20.One O(N * 2^N) approach is to iterate over all bitstrings of length N, and for each, add up the elements the correspond to the bits that are set to 1. An O(2^N) solution is to use recursion/backtracking and at each step choose whether or not to select a given element.While not required (and perhaps not recommended) for the bounds in this problem, a dynamic programming solution also exists. Let F(p, c, f, n) be a function that returns true if it's possible to get exactly p units of protein, c units of carbohydrates, and f units of fat using only the foods with indices [n, N-1]. F(G_p, G_c, G_f, 0) will then be the answer we're looking for.F(p, c, f, n) can be defined recursively as follows:
+F(0, 0, 0, n) = true (if we've met our requirements, we're done!)
+F(p, c, f, N) = false (if there are no foods left, we can't meet our requirements)
+F(p, c, f, n) = F(p - P_n, c - C_n, f - F_n, n+1) || F(p, c, f, n+1) (we can choose to either eat the nth food, or not; if either of these choices satisfies our requirements, then we succeed)
+This solution has a pseudo-polynomial time complexity of O(G_p * G_c * G_f * N), and is useful whenever N is large and the requirements are relatively small. Of course, it also carries a hefty memory complexity.
+
+Input: http://pastebin.com/LpjBdwi3
+Output: http://pastebin.com/KN11Vvxe
+
+Laser Maze
+
+This problem involves doing a breadth-first search (BFS) with a slightly augmented state. Our state needs to capture not only our location, but also the directions that the turrets are facing. The number of turrets may be arbitrarily large, so we can't specify the facing of each turret individually. A first observation is that the only information we need is the number of steps we've taken so far. With that, we can determine each turret's facing.But we can do better. Since each turret rotates through 4 different positions, after every 4 steps the turrets will be facing the same direction they were originally facing. Observe that all we need to keep track of is the number of steps taken modulo 4. After 13 steps, the turrets will be facing the same direction they were after 1, 5, or 9 steps. The problem is then to run BFS on a state of (current row, current column, number of steps modulo 4). This state has size O(N^2), where N is the size of the largest side of the maze.The other piece of the problem to consider is how to determine which cells can be moved into at every step. Naively, at every step we can iterate over each turret and determine which cells it's firing into. This will take O(N^2) time, leading to an overall time complexity of O(N^4). As this is a qualification problem, O(N^4) is good enough to pass the relatively small bounds. However, we can do better by precomputing which cells will be dangerous. For all 4 possible turret orientations, we can do an O(N^2) precomputation and store the dangerous cells. We can now determine whether or not we can enter a certain cell in O(1) time when we're running the search, leading to a total time complexity of O(N^2).
+
+Input: http://pastebin.com/E0KUyu3W
+Output: http://pastebin.com/ZCSsDGPw
